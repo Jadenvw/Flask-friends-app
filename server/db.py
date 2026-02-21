@@ -1,5 +1,8 @@
 import sqlite3
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Path(file).resolve() : turns it into an absolute path object and .parent moves up one level to folder containin db.py
 BASE_DIR = Path(__file__).resolve().parent # Users/Jaden/projects/labs/friends/server/app.db
@@ -13,7 +16,9 @@ def get_conn():
         - foreign keys enforced
     - return connection
     """
+
     conn = sqlite3.connect(DB_PATH) # sqlite3 is an object with a connect method 
+    logger.info("Starting DB connection")
     conn.row_factory = sqlite3.Row # adjust sqlite3 attribute to enforce wrapping each row in a Row object instead of a tuple
     # sqlite does not enfore foiegn keys automatically
     conn.execute("PRAGMA foreign_keys = ON;") # 
@@ -25,9 +30,12 @@ def init_db():
 
     conn = get_conn()
     try:
+        logger.info("Applying schema")
         conn.executescript(schema_sql)
         conn.commit()
     finally:
         conn.close()
+        logger.info("DB connection closed")
 
-
+if __name__ == "__main__":
+    init_db()

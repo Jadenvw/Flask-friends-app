@@ -1,73 +1,78 @@
 from flask import Blueprint, request, jsonify
-from werkzeug.security import generate_password_hash
-import re
-from auth.repo import create_user
-import sqlite3
+from werkzeug.security import check_password_hash
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from auth.repo import get_user_by_username
 import logging
 from extensions import limiter
 
 auth_bp = Blueprint("auth", __name__)
 logger = logging.getLogger(__name__)
-PATTERN_RE = re.compile(r'^(?=\S{8,}$)(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).*$')
 
-"""
-Build register in three layers:
-1) Route parses request + validates input
-2) Service logic handles business rules
-3) DB layer inserts user
-"""
-@auth_bp.post("/api/auth/register")
-@limiter.limit("1 per minute")
-def register():
-    logger.info("HIT REGISTER ROUTE")
+@auth_bp.post("/api/auth/login")
+@limiter.limit("3 per minute")
+def login():
     try:
-        # request is not JSON -> 400
+        # check that request is JSON
         if not request.is_json:
-            
             return jsonify({"error": "Requests must be JSON"}), 400
         
+        # store request in data var
         data = request.get_json()
-        
-        # no data -> 400
+
+        # check that the JSON is not empty
         if not data:
-            return jsonify({"error": "Invalid JSON"}), 400
+            return jsonify({"error": "Missing required fields"}), 400
         
-        # parse data
+        # parse JSON
         username, password = data.get("username"), data.get("password")
-        
-        # validation checks -> 400
+
+        # check we have required fields
         if not username:
             return jsonify({"error": "Error username required"}), 400
         
         if not password:
             return jsonify({"error": "Error password required"}), 400
-        
+
+        # verify the username could exist
         if len(username) < 3 or len(username) > 8:
-            return jsonify({"error": "Invalid username"}), 400
+            return jsonify({"error": "Invalid credentials."}), 401
         
-        if not PATTERN_RE.match(password):
-            return jsonify({"error": "Invalid password"}), 400
-        
-        # Generate hashed password w/ werkzeug
-        password_hash = generate_password_hash(password)
+        # get user row from the DB
+        user = get_user_by_username(username)
 
-        response = create_user(username, password_hash)
-        # return validation response -> 201
-        return jsonify(response), 201
-    
-    except sqlite3.IntegrityError as e:
-        logger.error("IntegrityError during register: %s", e)
-        # use containment so you don't rely on exact strings
-        if "UNIQUE constraint failed: users.username" in str(e):
-            return jsonify({"error": "Username already exists"}), 409
-        else:
-            return jsonify({"error": "Error saving user to database"}), 400
+        if not user:
+            return jsonify({"error": "User not found."}), 404
+        
+        password_hash = user["password_hash"]
+        # check password
+        if not check_password_hash(password_hash, password):
+            return jsonify({"error": "Invalid credentials."}), 401
+        
+        # token creation
+        token = create_access_token(identity=str(user["id"]))
+        return jsonify({
+            "token": token,
+            "user": {
+                "id": user["id"],
+                "username": username
+            }
+            }), 200
     except Exception as e:
-        print(str(e))
-        return jsonify({"error": "Server error"}), 500
-    
+        logger.error(str(e))
+        return jsonify({"error": "Internal Server Error"}), 500
 
-        
+@auth_bp.get("/api/auth/me")
+@jwt_required()
+def me():
+    try:
+        user_id = int(get_jwt_identity())
+        return jsonify({"user_id": user_id}), 200
+    except Exception as e:
+        logger.error(str(e))
+        return jsonify({"error": "Internal Sever Error"}), 500
+
+
+       
         
     
 

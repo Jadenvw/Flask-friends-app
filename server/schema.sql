@@ -4,3 +4,25 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS friend_relationship (
+    id INTEGER PRIMARY KEY,
+    pair_low INTEGER NOT NULL,
+    pair_high INTEGER NOT NULL,
+    sender_id INTEGER NOT NULL,
+    request_status TEXT NOT NULL DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    responded_at DATETIME,
+    -- FK integrity
+    FOREIGN KEY (pair_low) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (pair_high) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    -- no duplicates for the same pair
+    UNIQUE (pair_low, pair_high),
+    -- canonical ordering / no self-requests
+    CHECK (pair_low < pair_high),
+    -- sender must be one of the pair members
+    CHECK (sender_id = pair_low OR sender_id = pair_high),
+    -- status must be one of two values
+    CHECK (request_status IN ('pending', 'accepted'))
+);

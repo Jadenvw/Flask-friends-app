@@ -3,19 +3,18 @@ from flask_cors import CORS
 import logging
 from extensions import limiter
 from flask_limiter.errors import RateLimitExceeded
+from db import init_db
+from dotenv import load_dotenv
+import os
+from flask_jwt_extended import JWTManager
 
+# reads .env, parses it, inserts key=value pairs into os.environ
+load_dotenv()
 
 # application factory
 def create_app():
     # Creates web application obj
     app = Flask(__name__)
-
-    # create a global limiter for the app
-    limiter.init_app(app)
-    # handle any instance where a rate limit is hit
-    @app.errorhandler(RateLimitExceeded)
-    def handle_rate_limit(e):
-        return jsonify({"error": "Too many requests. Try again later."}), 429
 
     # configures global logging around the app
     """
@@ -27,6 +26,28 @@ def create_app():
     - CRITICAL: the app is dying: usually precedes shutdown
     """
     logging.basicConfig(level=logging.INFO)
+
+    # initialize database (dev only)
+    init_db()
+
+    # retrieve JWT from os
+    secret = os.environ.get("JWT_SECRET_KEY")
+    # Check if the secret exists
+    if not secret:
+        # failure
+        raise RuntimeError("JWT_SECRET_KEY is not set")
+    # store JWT in Flask config
+    app.config["JWT_SECRET_KEY"] = secret
+    logging.info("JWT_SECRET_KEY configured.")
+    # wire JWT into Flask
+    JWTManager(app)
+
+    # create a global limiter for the app
+    limiter.init_app(app)
+    # handle any instance where a rate limit is hit
+    @app.errorhandler(RateLimitExceeded)
+    def handle_rate_limit(e):
+        return jsonify({"error": "Too many requests. Try again later."}), 429
     
     # frontend runs on diff origin (diff port); Browsers bloack cross-origin requests unless we allow it
     # requests from react are allowed for all api routes
@@ -35,6 +56,8 @@ def create_app():
 
     from auth.routes import auth_bp
     app.register_blueprint(auth_bp)
+    from user.routes import user_bp
+    app.register_blueprint(user_bp)
 
     # defines route for sanity endpoint
     @app.get("/api/health")

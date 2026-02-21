@@ -1,22 +1,18 @@
 from db import get_conn
 
-def create_user(username: str, password_hash: str) -> dict:
+def get_user_by_username(username):
     """
-    1) open connect with persistance 
-    2) run an INSERT into users
-    3) commit
-    4) close connection
-    5) return the inserted user (id + username)
+    1) Open a connection
+    2) Query users table
+    3) Return one row or None
     """
     conn = get_conn()
-    try: 
+    try:
         cur = conn.execute(
-            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
-            (username, password_hash)
+            "SELECT id, username, password_hash FROM users WHERE username = ?",
+            (username,)
         )
-        conn.commit()
-        return {"id": cur.lastrowid, "username": username}
+        row = cur.fetchone()
+        return row
     finally:
         conn.close()
-
-
