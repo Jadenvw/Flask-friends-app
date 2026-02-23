@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from auth.repo import get_user_by_username
+from user.repo import get_user_by_username
 import logging
 from extensions import limiter
 

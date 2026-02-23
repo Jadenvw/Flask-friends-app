@@ -5,7 +5,7 @@ from extensions import limiter
 from werkzeug.security import generate_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import re
-from user.repo import insert_user_row, get_user_by_id, delete
+from user.repo import insert_user, delete_user, get_user_by_id
 
 user_bp = Blueprint("user", __name__)
 logger = logging.getLogger(__name__)
@@ -51,11 +51,11 @@ def create_user():
         # Generate hashed password w/ werkzeug
         password_hash = generate_password_hash(password)
 
-        response = insert_user_row(username, password_hash)
+        response = insert_user(username, password_hash)
         logger.info("Inserted user")
         
         # return validation response -> 201
-        return jsonify(response), 201
+        return jsonify({"id": response["id"], "username": response["username"]}), 201
     except sqlite3.IntegrityError as e:
         logger.error("IntegrityError while creating user: %s", e)
         # use containment so you don't rely on exact strings
@@ -79,7 +79,7 @@ def delete_user():
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        response = delete(id)
+        response = delete_user(id)
         
         return jsonify(response), 204
     

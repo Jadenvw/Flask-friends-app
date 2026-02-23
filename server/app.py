@@ -58,6 +58,8 @@ def create_app():
     app.register_blueprint(auth_bp)
     from user.routes import user_bp
     app.register_blueprint(user_bp)
+    from relationships.routes import relationshp_bp
+    app.register_blueprint(relationshp_bp)
 
     # defines route for sanity endpoint
     @app.get("/api/health")

@@ -5,12 +5,12 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS friend_relationship (
+CREATE TABLE IF NOT EXISTS friend_relationships (
     id INTEGER PRIMARY KEY,
     pair_low INTEGER NOT NULL,
     pair_high INTEGER NOT NULL,
     sender_id INTEGER NOT NULL,
-    request_status TEXT NOT NULL DEFAULT 'pending',
+    relationship_status TEXT NOT NULL DEFAULT 'pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     responded_at DATETIME,
     -- FK integrity
@@ -24,5 +24,11 @@ CREATE TABLE IF NOT EXISTS friend_relationship (
     -- sender must be one of the pair members
     CHECK (sender_id = pair_low OR sender_id = pair_high),
     -- status must be one of two values
-    CHECK (request_status IN ('pending', 'accepted'))
+    CHECK (relationship_status IN ('blocked', 'pending', 'accepted'))
+);
+
+CREATE TABLE IF NOT EXISTS revoked_tokens (
+  jti TEXT PRIMARY KEY,
+  revoked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME
 );
