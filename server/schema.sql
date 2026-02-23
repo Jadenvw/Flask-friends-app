@@ -29,6 +29,6 @@ CREATE TABLE IF NOT EXISTS friend_relationships (
 
 CREATE TABLE IF NOT EXISTS revoked_tokens (
   jti TEXT PRIMARY KEY,
-  revoked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  expires_at DATETIME
+  revoked_at DATETIME DEFAULT CURRENT_TIMESTAMP
+-- expires_at DATETIME -- Makes table clean up much easier
 );

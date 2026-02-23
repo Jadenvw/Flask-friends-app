@@ -5,7 +5,8 @@ from extensions import limiter
 from werkzeug.security import generate_password_hash
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import re
-from user.repo import insert_user, delete_user, get_user_by_id
+from user.repo import insert_user, remove_user, get_user_by_id
+from db import get_db
 
 user_bp = Blueprint("user", __name__)
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ Build register in three layers:
 @limiter.limit("5 per minute")
 def create_user():
     logger.info("HIT REGISTER ROUTE")
+    conn = get_db()
     try:
         # request is not JSON -> 400
         if not request.is_json:
@@ -51,7 +53,7 @@ def create_user():
         # Generate hashed password w/ werkzeug
         password_hash = generate_password_hash(password)
 
-        response = insert_user(username, password_hash)
+        response = insert_user(conn, username, password_hash)
         logger.info("Inserted user")
         
         # return validation response -> 201
@@ -71,17 +73,17 @@ def create_user():
 @user_bp.post("/api/user/delete")
 @jwt_required()
 def delete_user():
+    conn = get_db()
     try:
         id = int(get_jwt_identity())
-        
-        user = get_user_by_id(id)
+        user = get_user_by_id(conn, id)
        
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        response = delete_user(id)
+        remove_user(conn, id)
         
-        return jsonify(response), 204
+        return "", 204
     
     except Exception as e:
         logger.error(str(e))

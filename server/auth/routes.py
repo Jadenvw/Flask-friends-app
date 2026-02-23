@@ -4,6 +4,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from user.repo import get_user_by_username
 import logging
 from extensions import limiter
+from db import get_db
 
 auth_bp = Blueprint("auth", __name__)
 logger = logging.getLogger(__name__)
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 @auth_bp.post("/api/auth/login")
 @limiter.limit("3 per minute")
 def login():
+    conn = get_db()
     try:
         # check that request is JSON
         if not request.is_json:
@@ -38,7 +40,7 @@ def login():
             return jsonify({"error": "Invalid credentials."}), 401
         
         # get user row from the DB
-        user = get_user_by_username(username)
+        user = get_user_by_username(conn, username)
 
         if not user:
             return jsonify({"error": "User not found."}), 404

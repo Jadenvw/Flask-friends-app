@@ -3,10 +3,11 @@ from flask_cors import CORS
 import logging
 from extensions import limiter
 from flask_limiter.errors import RateLimitExceeded
-from db import init_db
+from db import close_db
 from dotenv import load_dotenv
 import os
 from flask_jwt_extended import JWTManager
+from datetime import timedelta
 
 # reads .env, parses it, inserts key=value pairs into os.environ
 load_dotenv()
@@ -27,8 +28,7 @@ def create_app():
     """
     logging.basicConfig(level=logging.INFO)
 
-    # initialize database (dev only)
-    init_db()
+    app.teardown_appcontext(close_db)
 
     # retrieve JWT from os
     secret = os.environ.get("JWT_SECRET_KEY")
@@ -38,6 +38,7 @@ def create_app():
         raise RuntimeError("JWT_SECRET_KEY is not set")
     # store JWT in Flask config
     app.config["JWT_SECRET_KEY"] = secret
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
     logging.info("JWT_SECRET_KEY configured.")
     # wire JWT into Flask
     JWTManager(app)
@@ -71,6 +72,7 @@ def create_app():
     @limiter.limit("3 per minute")
     def limit_test():
         return jsonify({"ok": True}), 200
+    
     
     return app
 

@@ -48,7 +48,7 @@ def send_friend_request():
                 
         
         row = insert_pending_relationship(sender_id, target_id)
-        print(type(row))
+
         return jsonify(
             {"id": row["id"], 
              "sender": sender_id, 
@@ -57,6 +57,17 @@ def send_friend_request():
              "created_at": row["created_at"]}
             ), 201
         
+    except Exception as e:
+        logger.error(str(e))
+        return jsonify({"error": "Internal Server Error"}), 500
+    
+
+@relationshp_bp.post("/api/friends/respond")
+@jwt_required()
+def respond_to_request():
+    try:
+        
+        pass
     except Exception as e:
         logger.error(str(e))
         return jsonify({"error": "Internal Server Error"}), 500
