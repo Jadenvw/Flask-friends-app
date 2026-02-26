@@ -31,7 +31,7 @@ def create_app():
     app.teardown_appcontext(close_db)
 
     # retrieve JWT from os
-    secret = os.environ.get("JWT_SECRET_KEY")
+    secret = os.getenv("JWT_SECRET_KEY")
     # Check if the secret exists
     if not secret:
         # failure
@@ -52,8 +52,13 @@ def create_app():
     
     # frontend runs on diff origin (diff port); Browsers bloack cross-origin requests unless we allow it
     # requests from react are allowed for all api routes
-    # CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
-    CORS(app) # this allows requests from any origin to any route
+    frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+    CORS(
+        app, 
+        resources={r"/api/*": {"origins": frontend_origin}},
+        supports_credentials=True,
+        )
+    # CORS(app) # this allows requests from any origin to any route
 
     from auth.routes import auth_bp
     app.register_blueprint(auth_bp)
