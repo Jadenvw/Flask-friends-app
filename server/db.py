@@ -19,9 +19,6 @@ def _create_conn() -> sqlite3.Connection:
     * Used outside of request context
     """
     conn = sqlite3.connect(DB_PATH) # sqlite3 is an object with a connect method 
-    logger.info(f"DB_PATH resolved to: {DB_PATH} (exists={DB_PATH.exists()})")
-    logger.info(f"sqlite database_list: {conn.execute('PRAGMA database_list;').fetchall()}")
-    logger.info("Starting DB connection")
     conn.row_factory = sqlite3.Row # adjust sqlite3 attribute to enforce wrapping each row in a Row object instead of a tuple
     # sqlite does not enfore foiegn keys automatically
     conn.execute("PRAGMA foreign_keys = ON;") # 
